@@ -64,7 +64,7 @@ def get_total_pages(period_segment, start_date_str, per_page, page):
         return math.ceil(pages)
 
 
-def get_segment_date(period_segment, start_date_str, page):
+def get_links_by_segments(period_segment, start_date_str, page):
     prepare_start_segment_date_obj = prepare_period_start_segment(start_date_str)
     total_pages = get_total_pages(period_segment, start_date_str, per_page, page)
 
@@ -99,15 +99,28 @@ def get_segment_date(period_segment, start_date_str, page):
         ]
         # contaners = [link.select_one("div.registry-entry__body-href a")["href"] for link in prepare_contaners]
         print(len(contaner_links))
-        pprint(contaner_links)
-        exit()
-
-
+        # pprint(contaner_links)
+        # exit()
 
 
         if end_segment_date_obj > datetime.datetime.today():
         # if end_segment_date > "05.04.2019":
             break
+        yield contaner_links
+
+def get_content_by_segments(period_segment, start_date_str, page):
+
+    links = get_links_by_segments(period_segment, start_date_str, page)
+
+    for link in links:
+        response = requests.get(link, headers=headers)
+        print(response.url)
+        soup = BeautifulSoup(response.text, "lxml")
+   
+        # prepare_contaners = soup.select("div.search-registry-entry-block")
+        exit()
+        
+        
 
 
 
@@ -166,4 +179,4 @@ if __name__ == "__main__":
 
     start_date_str = '25.12.2018'
     period_segment = 14
-    get_segment_date(period_segment, start_date_str, page)
+    get_content_by_segments(period_segment, start_date_str, page)
