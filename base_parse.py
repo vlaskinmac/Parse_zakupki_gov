@@ -47,14 +47,14 @@ def get_total_pages(period_segment, start_date_str, per_page, page):
         end_segment_date_obj = start_segment_date_obj + timedelta(days=period_segment - 1)
         start_segment_date = datetime.datetime.strftime(start_segment_date_obj, '%d.%m.%Y')
         end_segment_date = datetime.datetime.strftime(end_segment_date_obj, '%d.%m.%Y')
-        print(start_segment_date, '====')
-        print(end_segment_date, '++++')
+        # print(start_segment_date, '====')
+        # print(end_segment_date, '++++')
 
         payload["registryDateFrom"] = start_segment_date
         payload["registryDateTo"] = end_segment_date
 
         response = requests.get(url, params=payload, headers=headers)
-        print(response.url)
+        # print(response.url)
 
         soup = BeautifulSoup(response.text, "lxml")
         prepare_total_pages = soup.select_one(".search-results__total").get_text(strip=True)
@@ -64,7 +64,7 @@ def get_total_pages(period_segment, start_date_str, per_page, page):
         return math.ceil(pages)
 
 
-def get_links_by_segments(period_segment, start_date_str, page):
+def get_content_by_segments(period_segment, start_date_str, page):
     prepare_start_segment_date_obj = prepare_period_start_segment(start_date_str)
     total_pages = get_total_pages(period_segment, start_date_str, per_page, page)
 
@@ -73,6 +73,7 @@ def get_links_by_segments(period_segment, start_date_str, page):
         "pageNumber": page,
         "recordsPerPage": per_page,
         "participantType": "0,2",
+        "registered": "on",
     }
 
     for segment in count(step=14):
@@ -80,45 +81,42 @@ def get_links_by_segments(period_segment, start_date_str, page):
         end_segment_date_obj = start_segment_date_obj + timedelta(days=period_segment - 1)
         start_segment_date = datetime.datetime.strftime(start_segment_date_obj, '%d.%m.%Y')
         end_segment_date = datetime.datetime.strftime(end_segment_date_obj, '%d.%m.%Y')
-        print(start_segment_date, '====')
-        print(end_segment_date, '++++')
 
         payload["registryDateFrom"] = start_segment_date
         payload["registryDateTo"] = end_segment_date
-
         response = requests.get(url, params=payload, headers=headers)
-        print(response.url)
-        soup = BeautifulSoup(response.text, "lxml")
+
+        if end_segment_date_obj > datetime.datetime.today():
+            # if end_segment_date > "05.04.2019":
+            break
+        yield response
+
+
+def get_links_by_segments(period_segment, start_date_str, page):
+    links = get_content_by_segments(period_segment, start_date_str, page)
+    for link_text in links:
+        soup = BeautifulSoup(link_text.text, "lxml")
         prepare_contaners = soup.select("div.search-registry-entry-block")
-        # print(prepare_contaners)
+
         host = "https://zakupki.gov.ru"
 
         contaner_links = [
             urljoin(host, i) for i in [link.select_one("div.registry-entry__body-href a")["href"]
                                        for link in prepare_contaners]
         ]
-        # contaners = [link.select_one("div.registry-entry__body-href a")["href"] for link in prepare_contaners]
+    # contaners = [link.select_one("div.registry-entry__body-href a")["href"] for link in prepare_contaners]
         print(len(contaner_links))
+        print()
         # pprint(contaner_links)
-        # exit()
 
-
-        if end_segment_date_obj > datetime.datetime.today():
-        # if end_segment_date > "05.04.2019":
-            break
-        yield contaner_links
-
-def get_content_by_segments(period_segment, start_date_str, page):
-
-    links = get_links_by_segments(period_segment, start_date_str, page)
-
-    for link in links:
-        response = requests.get(link, headers=headers)
-        print(response.url)
-        soup = BeautifulSoup(response.text, "lxml")
+        for link in contaner_links:
+            response = requests.get(link, headers=headers)
+            print(response.url)
+            # exit()
+       # soup = BeautifulSoup(response.text, "lxml")
    
         # prepare_contaners = soup.select("div.search-registry-entry-block")
-        exit()
+
         
         
 
@@ -148,16 +146,9 @@ def get_content_by_segments(period_segment, start_date_str, page):
     # end_segment_date = datetime.datetime.strftime(prepare_end_segment_date, '%d.%m.%Y')
 
 
-def get_links_contaner():
-    pass
-
-
-
 
 
 if __name__ == "__main__":
-
-
     logging.basicConfig(
         level=logging.WARNING,
         filename='logs.log',
@@ -179,4 +170,4 @@ if __name__ == "__main__":
 
     start_date_str = '25.12.2018'
     period_segment = 14
-    get_content_by_segments(period_segment, start_date_str, page)
+    get_links_by_segments(period_segment, start_date_str, page)
