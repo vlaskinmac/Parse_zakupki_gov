@@ -104,21 +104,131 @@ def get_links_by_segments(period_segment, start_date_str, page):
             urljoin(host, i) for i in [link.select_one("div.registry-entry__body-href a")["href"]
                                        for link in prepare_contaners]
         ]
-    # contaners = [link.select_one("div.registry-entry__body-href a")["href"] for link in prepare_contaners]
-        print(len(contaner_links))
-        print()
+
+        # print(len(contaner_links))
+
         # pprint(contaner_links)
 
         for link in contaner_links:
-            response = requests.get(link, headers=headers)
-            print(response.url)
-            # exit()
-       # soup = BeautifulSoup(response.text, "lxml")
-   
-        # prepare_contaners = soup.select("div.search-registry-entry-block")
+            print("*" * 50)
 
-        
-        
+            response = requests.get(link, headers=headers)
+            # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
+            # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
+            soup = BeautifulSoup(response.text, "lxml")
+            # check_company = soup.select_one()
+            yield soup
+
+            # print(response.url)
+
+
+def interface_of_paths_ip_ooo(period_segment, start_date_str, page):
+    # headers = {
+    #     "Accept": "*/*",
+    #     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)"
+    #                   " Chrome/96.0.4664.110 Safari/537.36",
+    #     "Accept-Encoding": "gzip, deflate, br",
+    #
+    # }
+    soup_obj = get_links_by_segments(period_segment, start_date_str, page)
+    for soup in soup_obj:
+
+
+
+    # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
+    # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
+
+    # response = requests.get(ip, headers=headers)
+    # response = requests.get(ip, headers=headers)
+    # response = requests.get(ooo, headers=headers)
+
+    # soup = BeautifulSoup(response.text, "lxml")
+
+    # with open("ip.html", "w", encoding='utf-8') as file:
+    #     file.write(str(soup))
+    # with open('index.html', 'r', encoding='utf-8') as file:
+    #     hendler_src3 = file.read()
+
+
+    # html = soup.select(".blockInfo__section")
+    # check_company = [item.select_one("span.section__title").get_text(strip=True) for item in html]
+    # pprint(check_company)
+    #
+    # exit()
+
+        contaner_html = soup.select(".blockInfo__section")
+        if re.findall("Юридическое лицо", str(contaner_html), flags=re.I):
+            ooo_data(contaner_html)
+
+        if re.findall("индивидуальный предприниматель", str(contaner_html), flags=re.I):
+            ip_data(contaner_html)
+
+
+def ip_data(html):
+
+    title_ip = [
+        'Номер реестровой записи в ЕРУЗ',
+        'Статус регистрации',
+        'Тип участника закупки',
+        'Дата регистрации в ЕИС',
+        'ФИО',
+        'ИНН',
+        'ОГРНИП',
+        'Дата регистрации индивидуального предпринимателя',
+        'Дата постановки на учет в налоговом органе',
+        'Участник закупки является субъектом малого предпринимательства',
+        'Адрес электронной почты',
+        'Электронная площадка'
+    ]
+
+    for check in title_ip:
+        for record in html:
+            soup = BeautifulSoup(record.text, "lxml")
+            text = soup.select_one("html body p").get_text(strip=True)
+            # print(text.split('\n'))
+            try:
+                title, data = text.split('\n')
+            except:
+                continue
+            if check == title:
+                print(title, "-", data)
+                print()
+    # exit()
+
+
+def ooo_data(html):
+    title_ooo = [
+        'Номер реестровой записи в ЕРУЗ',
+        'Статус регистрации',
+        'Тип участника закупки',
+        'Дата регистрации в ЕИС',
+        'Полное наименование',
+        'Сокращенное наименование',
+        'Адрес в пределах места нахождения',
+        'ИНН',
+        'КПП',
+        'Дата постановки на учет в налоговом органе',
+        'ОГРН',
+        'Почтовый адрес',
+        'Адрес электронной почты',
+        'Контактный телефон',
+        'Электронная площадка'
+    ]
+
+    for check in title_ooo:
+        for record in html:
+            soup = BeautifulSoup(record.text, "lxml")
+            text = soup.select_one("html body p").get_text(strip=True)
+            # print(text.split('\n'))
+            try:
+                title, data = text.split('\n')
+            except:
+                continue
+            if check == title:
+                print(title, "-", data)
+                print()
+    # exit()
+
 
 
 
@@ -145,9 +255,6 @@ def get_links_by_segments(period_segment, start_date_str, page):
     # start_segment_date = datetime.datetime.strftime(prepare_start_segment_date_obj, '%d.%m.%Y')
     # end_segment_date = datetime.datetime.strftime(prepare_end_segment_date, '%d.%m.%Y')
 
-
-
-
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.WARNING,
@@ -170,4 +277,5 @@ if __name__ == "__main__":
 
     start_date_str = '25.12.2018'
     period_segment = 14
-    get_links_by_segments(period_segment, start_date_str, page)
+    interface_of_paths_ip_ooo(period_segment, start_date_str, page)
+    # get_links_by_segments(period_segment, start_date_str, page)
