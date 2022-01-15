@@ -12,6 +12,7 @@ Base = declarative_base()
 
 class Lids(Base):
     __tablename__ = "lids"
+
     # __tableargs__ = (Index("common_index", "short_name", "full_name", "inn", "ogrn", "email",
     #                        "phone", "type_lids", "status_registration_eis", "date_registration_eis",
     #                        "created_on", "updated_on", "address_yur", "address_postal"))
