@@ -12,6 +12,13 @@ from bs4 import BeautifulSoup
 from datetime import timedelta
 from itertools import count
 
+from orm_models import Lids
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+engine = create_engine("postgresql+psycopg2://tesseractmaks:Vfrcvfrc1@localhost/parse")
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 # participantType_2 - ИП, participantType_0 - юр. лица
@@ -22,7 +29,6 @@ from itertools import count
 #       "rejectReasonIdNameHidden=%7B%7D&countryRegIdNameHidden=%7B%7D"
 
 # url2 = "https://zakupki.gov.ru/epz/eruz/search/results.html?&pageNumber=10&recordsPerPage=_500&participantType=0%2C2&registryDateFrom=01.04.2021&registryDateTo=14.04.2021"
-
 
 
 def prepare_period_start_segment(start_date_str):
@@ -117,6 +123,7 @@ def get_links_by_segments(period_segment, start_date_str, page):
             # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
             soup = BeautifulSoup(response.text, "lxml")
             # check_company = soup.select_one()
+
             yield soup
 
             # print(response.url)
@@ -133,53 +140,69 @@ def interface_of_paths_ip_ooo(period_segment, start_date_str, page):
     soup_obj = get_links_by_segments(period_segment, start_date_str, page)
     for soup in soup_obj:
 
+        # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
+        # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
 
+        # response = requests.get(ip, headers=headers)
+        # response = requests.get(ip, headers=headers)
+        # response = requests.get(ooo, headers=headers)
 
-    # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
-    # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
+        # soup = BeautifulSoup(response.text, "lxml")
 
-    # response = requests.get(ip, headers=headers)
-    # response = requests.get(ip, headers=headers)
-    # response = requests.get(ooo, headers=headers)
+        # with open("ip.html", "w", encoding='utf-8') as file:
+        #     file.write(str(soup))
+        # with open('index.html', 'r', encoding='utf-8') as file:
+        #     hendler_src3 = file.read()
 
-    # soup = BeautifulSoup(response.text, "lxml")
-
-    # with open("ip.html", "w", encoding='utf-8') as file:
-    #     file.write(str(soup))
-    # with open('index.html', 'r', encoding='utf-8') as file:
-    #     hendler_src3 = file.read()
-
-
-    # html = soup.select(".blockInfo__section")
-    # check_company = [item.select_one("span.section__title").get_text(strip=True) for item in html]
-    # pprint(check_company)
-    #
-    # exit()
+        # html = soup.select(".blockInfo__section")
+        # check_company = [item.select_one("span.section__title").get_text(strip=True) for item in html]
+        # pprint(check_company)
+        #
+        # exit()
 
         contaner_html = soup.select(".blockInfo__section")
-        if re.findall("Юридическое лицо", str(contaner_html), flags=re.I):
-            ooo_data(contaner_html)
+        # if re.findall("Юридическое лицо", str(contaner_html), flags=re.I):
+        #     ooo_data(contaner_html)
 
         if re.findall("индивидуальный предприниматель", str(contaner_html), flags=re.I):
             ip_data(contaner_html)
 
 
 def ip_data(html):
+    # title_ip = [
+    #     'ФИО',
+    #     'ИНН',
+    #     'ОГРНИП',
+    #     'Номер реестровой записи в ЕРУЗ',
+    #     'Статус регистрации',
+    #     'Дата регистрации в ЕИС',
+    #     'Дата постановки на учет в налоговом органе',
+    #     'Адрес электронной почты',
+    # ]
 
-    title_ip = [
-        'Номер реестровой записи в ЕРУЗ',
-        'Статус регистрации',
-        'Тип участника закупки',
-        'Дата регистрации в ЕИС',
-        'ФИО',
-        'ИНН',
-        'ОГРНИП',
-        'Дата регистрации индивидуального предпринимателя',
-        'Дата постановки на учет в налоговом органе',
-        'Адрес электронной почты',
+    title_ip = {
+        "number_in_reestr": 'Номер реестровой записи в ЕРУЗ',
+        "status_registration_eis": 'Статус регистрации',
+        "date_registration_eis": 'Дата регистрации в ЕИС',
+        "full_name": 'ФИО',
+        "inn": 'ИНН',
+        "ogrn": 'ОГРНИП',
+        "date_registration_ifns": 'Дата постановки на учет в налоговом органе',
+        "email": 'Адрес электронной почты',
+    }
+
+    keys_ip = [
+        "full_name",
+        "inn",
+        "ogrn",
+        "number_in_reestr",
+        "status_registration_eis",
+        "date_registration_eis",
+        "date_registration_ifns",
+        "email",
     ]
-
-    for check in title_ip:
+    ip = {}
+    for key, value in title_ip.items():
         for record in html:
             soup = BeautifulSoup(record.text, "lxml")
             text = soup.select_one("html body p").get_text(strip=True)
@@ -188,10 +211,35 @@ def ip_data(html):
                 title, data = text.split('\n')
             except:
                 continue
-            if check == title:
-                print(title, "-", data)
-                print()
-    # exit()
+            if value == title:
+                if key == "full_name":
+                    ip["full_name"] = data.upper()
+                elif key == "inn":
+                    ip["inn"] = int(data)
+                elif key == "ogrn":
+                    ip["ogrn"] = int(data)
+                elif key == "number_in_reestr":
+                    ip["number_in_reestr"] = int(data)
+                elif key == "status_registration_eis":
+                    ip["status_registration_eis"] = data
+                elif key == "date_registration_eis":
+                    ip["date_registration_eis"] = datetime.datetime.strptime(data, "%d.%m.%Y").date()
+                elif key == "date_registration_ifns":
+                    ip["date_registration_ifns"] = datetime.datetime.strptime(data, "%d.%m.%Y").date()
+                elif key == "email":
+                    ip["email"] = data
+
+    try:
+        lid = Lids(
+            category_id=2, created_on=datetime.date.today(), date_registration_eis=ip["date_registration_eis"],
+            date_registration_ifns=ip["date_registration_ifns"], email=ip["email"], full_name=ip["full_name"],
+            inn=ip["inn"], number_in_reestr=ip["number_in_reestr"], ogrn=ip["ogrn"],
+            status_registration_eis=ip["status_registration_eis"],
+        )
+        session.add(lid)
+        session.commit()
+    except SQLAlchemyError:
+        session.rollback()
 
 
 def ooo_data(html):
@@ -207,7 +255,6 @@ def ooo_data(html):
         'КПП',
         'Дата постановки на учет в налоговом органе',
         'ОГРН',
-        'Почтовый адрес',
         'Адрес электронной почты',
         'Контактный телефон',
     ]
@@ -226,31 +273,22 @@ def ooo_data(html):
                 print()
     # exit()
 
-
-
-
-
-
-
-
     # print(start_segment_date)
     # print(end_segment_date)
     # period = str(period_pre.days)
     # print(period)
 
+
 # get_segment_date(period_segment, start_date_str)
-
-
-
 
 
 # def movement_of_segments():
 #     prepare_start_segment_date_obj = prepare_today_date_obj - timedelta(days=prepare_period_obj.days)
 #     prepare_end_segment_date = prepare_start_segment_date_obj + timedelta(days=period_segment)
 
-    # start_date = datetime.datetime.strftime(start_date, '%d.%m.%Y')
-    # start_segment_date = datetime.datetime.strftime(prepare_start_segment_date_obj, '%d.%m.%Y')
-    # end_segment_date = datetime.datetime.strftime(prepare_end_segment_date, '%d.%m.%Y')
+# start_date = datetime.datetime.strftime(start_date, '%d.%m.%Y')
+# start_segment_date = datetime.datetime.strftime(prepare_start_segment_date_obj, '%d.%m.%Y')
+# end_segment_date = datetime.datetime.strftime(prepare_end_segment_date, '%d.%m.%Y')
 
 if __name__ == "__main__":
     logging.basicConfig(
