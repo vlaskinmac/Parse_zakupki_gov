@@ -116,14 +116,11 @@ def get_links_by_segments(period_segment, start_date_str, page):
         # pprint(contaner_links)
 
         for link in contaner_links:
-            print("*" * 50)
-
             response = requests.get(link, headers=headers)
             # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
             # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
             soup = BeautifulSoup(response.text, "lxml")
             # check_company = soup.select_one()
-
             yield soup
 
             # print(response.url)
@@ -138,8 +135,10 @@ def interface_of_paths_ip_ooo(period_segment, start_date_str, page):
     #
     # }
     soup_obj = get_links_by_segments(period_segment, start_date_str, page)
+    count_ooo = 0
+    count_ip = 0
+    total = 0
     for soup in soup_obj:
-
         # ooo = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007263'
         # ip = 'https://zakupki.gov.ru/epz/eruz/card/general-information.html?reestrNumber=19007265'
 
@@ -161,10 +160,16 @@ def interface_of_paths_ip_ooo(period_segment, start_date_str, page):
         # exit()
 
         contaner_html = soup.select(".blockInfo__section")
-        # if re.findall("Юридическое лицо", str(contaner_html), flags=re.I):
-        #     ooo_data(contaner_html)
+        total += 1
+        print("total ----------", total)
+        if re.findall("Юридическое лицо", str(contaner_html), flags=re.I):
+            count_ooo += 1
+            print("ooo - ", count_ooo)
+            ooo_data(contaner_html)
 
         if re.findall("индивидуальный предприниматель", str(contaner_html), flags=re.I):
+            count_ip += 1
+            print("ip - ", count_ip)
             ip_data(contaner_html)
 
 
@@ -191,16 +196,16 @@ def ip_data(html):
         "email": 'Адрес электронной почты',
     }
 
-    keys_ip = [
-        "full_name",
-        "inn",
-        "ogrn",
-        "number_in_reestr",
-        "status_registration_eis",
-        "date_registration_eis",
-        "date_registration_ifns",
-        "email",
-    ]
+    # keys_ip = [
+    #     "full_name",
+    #     "inn",
+    #     "ogrn",
+    #     "number_in_reestr",
+    #     "status_registration_eis",
+    #     "date_registration_eis",
+    #     "date_registration_ifns",
+    #     "email",
+    # ]
     ip = {}
     for key, value in title_ip.items():
         for record in html:
@@ -238,28 +243,46 @@ def ip_data(html):
         )
         session.add(lid)
         session.commit()
-    except SQLAlchemyError:
+
+    except SQLAlchemyError as exc:
+        print(exc, '99999')
         session.rollback()
 
 
 def ooo_data(html):
-    title_ooo = [
-        'Номер реестровой записи в ЕРУЗ',
-        'Статус регистрации',
-        'Тип участника закупки',
-        'Дата регистрации в ЕИС',
-        'Полное наименование',
-        'Сокращенное наименование',
-        'Адрес в пределах места нахождения',
-        'ИНН',
-        'КПП',
-        'Дата постановки на учет в налоговом органе',
-        'ОГРН',
-        'Адрес электронной почты',
-        'Контактный телефон',
-    ]
+    # title_ooo = [
+    #     'Номер реестровой записи в ЕРУЗ',
+    #     'Статус регистрации',
+    #     'Тип участника закупки',
+    #     'Дата регистрации в ЕИС',
+    #     'Полное наименование',
+    #     'Сокращенное наименование',
+    #     'Адрес в пределах места нахождения',
+    #     'ИНН',
+    #     'КПП',
+    #     'Дата постановки на учет в налоговом органе',
+    #     'ОГРН',
+    #     'Адрес электронной почты',
+    #     'Контактный телефон',
+    # ]
 
-    for check in title_ooo:
+    title_ooo = {
+            "number_in_reestr": 'Номер реестровой записи в ЕРУЗ',
+            "status_registration_eis": 'Статус регистрации',
+            "date_registration_eis": 'Дата регистрации в ЕИС',
+            "full_name": "Полное наименование",
+            "short_name": 'Сокращенное наименование',
+            "address_yur": 'Адрес в пределах места нахождения',
+            "inn": 'ИНН',
+            "kpp": 'КПП',
+            "date_registration_ifns": 'Дата постановки на учет в налоговом органе',
+            "ogrn": 'ОГРН',
+            "email": 'Адрес электронной почты',
+            "phone": 'Контактный телефон',
+        }
+
+    ooo = {}
+    for key, value in title_ooo.items():
         for record in html:
             soup = BeautifulSoup(record.text, "lxml")
             text = soup.select_one("html body p").get_text(strip=True)
@@ -268,9 +291,46 @@ def ooo_data(html):
                 title, data = text.split('\n')
             except:
                 continue
-            if check == title:
-                print(title, "-", data)
-                print()
+            if value == title:
+                if key == "full_name":
+                    ooo["full_name"] = data.upper()
+                elif key == "short_name":
+                    ooo["short_name"] = data
+                elif key == "address_yur":
+                    ooo["address_yur"] = data
+                elif key == "inn":
+                    ooo["inn"] = int(data)
+                elif key == "kpp":
+                    ooo["kpp"] = int(data)
+                elif key == "ogrn":
+                    ooo["ogrn"] = int(data)
+                elif key == "number_in_reestr":
+                    ooo["number_in_reestr"] = int(data)
+                elif key == "status_registration_eis":
+                    ooo["status_registration_eis"] = data
+                elif key == "date_registration_eis":
+                    ooo["date_registration_eis"] = datetime.datetime.strptime(data, "%d.%m.%Y").date()
+                elif key == "date_registration_ifns":
+                    ooo["date_registration_ifns"] = datetime.datetime.strptime(data, "%d.%m.%Y").date()
+                elif key == "email":
+                    ooo["email"] = data
+                elif key == "phone":
+                    ooo["phone"] = data,
+
+    try:
+        lid = Lids(
+            category_id=1, created_on=datetime.date.today(), date_registration_eis=ooo["date_registration_eis"],
+            date_registration_ifns=ooo["date_registration_ifns"], email=ooo["email"], full_name=ooo["full_name"],
+            short_name=ooo["short_name"], inn=ooo["inn"], number_in_reestr=ooo["number_in_reestr"], ogrn=ooo["ogrn"],
+            status_registration_eis=ooo["status_registration_eis"], address_yur=ooo["address_yur"],
+            kpp=ooo["kpp"], phone=ooo["phone"],
+        )
+        session.add(lid)
+        session.commit()
+
+    except SQLAlchemyError as exc:
+        print(exc,'--888888888')
+        session.rollback()
     # exit()
 
     # print(start_segment_date)
