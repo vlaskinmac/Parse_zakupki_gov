@@ -1,5 +1,5 @@
 import datetime
-
+import psycopg2
 from sqlalchemy import Table, create_engine, Column, Integer, String, \
     UniqueConstraint, Index, Date, DateTime, Float, ForeignKey, BigInteger, select
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
@@ -22,24 +22,24 @@ class Lids(Base):
     #                        "created_on", "updated_on", "address_yur", "address_postal"))
 
     id = Column(Integer, primary_key=True)
-    short_name = Column(String(100), index=True)
-    full_name = Column(String(300), nullable=False, index=True)
-    inn = Column(BigInteger, nullable=False, index=True)
+    short_name = Column(String(400), index=True)
+    full_name = Column(String(400), nullable=False, default='char', index=True)
+    inn = Column(BigInteger, nullable=False, default=0,  index=True)
     kpp = Column(BigInteger)
-    ogrn = Column(BigInteger, nullable=False, unique=True, index=True)
-    email = Column(String(40))
-    phone = Column(String(100))
-    number_in_reestr = Column(BigInteger, nullable=False)
+    ogrn = Column(BigInteger, index=True)
+    email = Column(String(400))
+    phone = Column(String(400))
+    number_in_reestr = Column(BigInteger)
     date_registration_ifns = Column(Date())
     status_registration_eis = Column(String(20))
     date_registration_eis = Column(Date())
-    created_on = Column(Date(), default=datetime.datetime.now, nullable=False)
+    created_on = Column(Date(), default=datetime.datetime.now)
     updated_on = Column(Date(), default=datetime.date.today(), onupdate=datetime.date.today())
     address_yur = Column(String(400))
     # блок фильтров
     ooo_address_index = Column(BigInteger, index=True)
-    ooo_address_city = Column(String(100), index=True)
-    ooo_address_street = Column(String(100), index=True)
+    ooo_address_city = Column(String(400), index=True)
+    ooo_address_street = Column(String(400), index=True)
     ip_first_name = Column(String(100))
     ip_last_name = Column(String(100))
     ip_middle_name = Column(String(100))
